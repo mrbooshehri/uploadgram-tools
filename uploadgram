@@ -1,0 +1,57 @@
+#!/bin/bash
+deps="curl wc/du awk jq notify-send xclip"
+inst=""
+IFS=" "
+for i in $deps; do
+    IFS="/"
+    orig=""
+    for alt in $i; do
+        IFS=""
+        dir="$(which "$alt" 2>/dev/null)"
+        err=$?
+        [ -z "$orig" ] && orig="$alt"
+        if [[ "$err" == "0" ]]; then
+            eval "${orig/-/}=${dir}"
+            break
+        fi
+    done
+    if [[ "$err" != "0" ]]; then
+        [ -z "$inst" ] && echo 'Missing dependencies:'
+        inst="missing"
+        echo "- $i"
+    fi
+done
+if [[ "$inst" != "" ]]; then
+    echo "Please install these packages (or one of the alternatives) to use this script."
+    exit 1
+fi
+
+dir_home=$HOME/.cache/uploadgram
+mkdir -p $dir_home 
+
+RAWLINK=false
+file=$1
+
+[ -z "$file" ] &&  exit 1
+
+"${notifysend}" -u low --app-name "Uploadgram" "Uploading file..."
+case "$(basename "$wc")" in
+    "wc") size="$(${wc} -c "$file" | "${awk}" '{ print $1 }')";;
+    "du") size="$(${wc} -s "$file" | "${awk}" '{ print $0 }')";;
+esac
+RESP="$(${curl} -s -F "file_size=$size" -F "file_upload=@$file" "https://api.uploadgram.me/upload")"
+if [ "$?" != "0" ]; then
+    "${notifysend}" -u critical --app-name "Uploadgram" "File upload failed."
+fi
+if [ "$(echo "$RESP" | jq -r ".ok")" = "true" ]; then
+    "${notifysend}" -u normal --app-name "Uploadgram" "The file link has been copied to your clipboard!"
+    link="$(echo "$RESP" | ${jq} -r ".url")"; test "$RAWLINK" = "true" && echo -n "?raw"
+    del="$(echo "$RESP" | ${jq} -r ".delete")"
+    ( echo -n $link ) | "${xclip}" -sel clipboard
+    echo "Download link is: $link" | tee -a $dir_home/uploads_log
+    echo "Delete token is: $del" | tee -a $dir_home/uploads_log
+    echo "----------------------------------------------------" >> $dir_home/uploads_log
+else
+    echo "Upload failed."
+    echo "$RESP"
+fi
