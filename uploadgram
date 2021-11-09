@@ -34,17 +34,17 @@ file=$1
 
 [ -z "$file" ] &&  exit 1
 
-"${notifysend}" -u low --app-name "Uploadgram" "Uploading file..."
+notify-send -u low "Uploadgram" "\nUploading file..."
 case "$(basename "$wc")" in
     "wc") size="$(${wc} -c "$file" | "${awk}" '{ print $1 }')";;
     "du") size="$(${wc} -s "$file" | "${awk}" '{ print $0 }')";;
 esac
 RESP="$(${curl} -s -F "file_size=$size" -F "file_upload=@$file" "https://api.uploadgram.me/upload")"
 if [ "$?" != "0" ]; then
-    "${notifysend}" -u critical --app-name "Uploadgram" "File upload failed."
+    notify-send -u critical "Uploadgram" "\nFile upload failed."
 fi
 if [ "$(echo "$RESP" | jq -r ".ok")" = "true" ]; then
-    "${notifysend}" -u normal --app-name "Uploadgram" "The file link has been copied to your clipboard!"
+    notify-send -u normal "Uploadgram" "\nThe file link has been copied to your clipboard!"
     link="$(echo "$RESP" | ${jq} -r ".url")"; test "$RAWLINK" = "true" && echo -n "?raw"
     del="$(echo "$RESP" | ${jq} -r ".delete")"
     ( echo -n $link ) | "${xclip}" -sel clipboard
@@ -52,6 +52,8 @@ if [ "$(echo "$RESP" | jq -r ".ok")" = "true" ]; then
     echo "Delete token is: $del" | tee -a $dir_home/uploads_log
     echo "----------------------------------------------------" >> $dir_home/uploads_log
 else
+    notify-send -u critical "Uploadgram" "\nUpload failed."
     echo "Upload failed."
-    echo "$RESP"
+    echo "Failed to upload ${file}.\n More info:\n$RESP" | tee -a $dir_home/uploads_log
+    echo "----------------------------------------------------" >> $dir_home/uploads_log
 fi
