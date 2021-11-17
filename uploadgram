@@ -41,7 +41,7 @@ do
     h|\?)
      echo -e "Usage: uploadgram [Option] file"
      echo -e "  -h		Show this message"
-     echo -e "  -c		Copy download url in clipbaord"
+     echo -e "  -c		Copy download url to the clipbaord"
      echo -e "  -q		Generate qr-code of download link"
      echo -e "  -l		Show log of uploaded files"
      echo -e "  -v		Show version"
