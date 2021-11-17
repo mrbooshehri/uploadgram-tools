@@ -1,23 +1,49 @@
 # uploadgram-tools
-Simple tool to upload files to uploadgram from terminal
+Simple tool to upload files to [uploadgram](https://uploadgram.me/) from terminal
 
 List of dependencies:
- - curl                                  — which is needed to make uploads
- - wc/du, awk                            — which usually come preinstalled
- - jq                                    — a simple command to parse json (needed for uploads)
- - libnotify                             — to get some status notifications
- - xclip                                 — to copy link/image to clipboard
+ - curl
+ - wc/du, awk
+ - jq
+ - libnotify
+ - xclip
+ - qrencode
+
+## Caution
+This script is just a simple tool to upload your files and it **does not** encrypt your data, so please do not upload your sensitive data or at least encrypt them.
 
 ## How to get it 
-You can make a simple download by using
+Place this script where you keep your scripts or run one of the following command:
 ```bash
-curl -O https://raw.githubusercontent.com/mrbooshehri/uploadgram-tools/master/uploadgram && chmod +x uploadgram
-```
-But let's suppose you want to install it for the whole system (which is a common use case)
-```bash
-curl -s https://raw.githubusercontent.com/mrbooshehri/uploadgram-tools/master/uploadgram | sudo bash -c 'cat > /usr/bin/uploadgram && chmod +x /usr/bin/uploadgram'
+# using curl
+curl -s https://raw.githubusercontent.com/mrbooshehri/uploadgram-tools/master/uploadgram > /usr/local/bin/uploadgram
+
+# using wget 
+wget -qcO /usr/local/bin https://raw.githubusercontent.com/mrbooshehri/uploadgram-tools/master/uploadgram > /usr/local/bin/uploadgram
 ```
 ## How to use it
 ```bash
-uploadgram <PATH_TO_YOUR_FILE>
+uploadgram [Options] <PATH_TO_YOUR_FILE>
 ```
+## Options
+```
+  -h		Show this message
+  -c		Copy download url to the clipbaord
+  -q		Generate qr-code of download link
+  -l		Show log of uploaded files
+  -v		Show version
+```
+## Screenshots
+- Upload
+	![upload](./screenshots/upload.png)	
+- Upload with qr-code
+	![qr](./screenshots/qr.png)	 
+
+	Exported png under ```~/Pictures/uploadgram-qr```
+ 
+	![qr-img](./screenshots/qr-img.png)	
+- Log
+	![log](./screenshots/log.png)	
+
+## Contributing
+Pull requests are welcome, just fork the project made your changes and submit your request or open an issue for your request.
