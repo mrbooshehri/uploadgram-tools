@@ -1,5 +1,5 @@
 #!/bin/bash
-deps="curl wc/du awk jq notify-send xclip"
+deps="curl wc/du awk jq notify-send xclip qrencode"
 inst=""
 IFS=" "
 for i in $deps; do
@@ -28,11 +28,47 @@ fi
 
 dir_home=$HOME/.cache/uploadgram
 mkdir -p $dir_home 
+dir_qr=$HOME/Pictures/uploadgram-qr
+mkdir -p $dir_qr
 
-RAWLINK=false
+CLIPBOARD=0
+QRCODE=0
+OPTIND=1
+
+while getopts "lvqch?" opt
+do
+  case "$opt" in
+    h|\?)
+     echo -e "Usage: uploadgram [Option] file"
+     echo -e "  -h		Show this message"
+     echo -e "  -c		Copy download url in clipbaord"
+     echo -e "  -q		Generate qr-code of download link"
+     echo -e "  -l		Show log of uploaded files"
+     echo -e "  -v		Show version"
+     echo -e "\nNote: Generated qr-codes are under $dir_qr"
+     exit 0
+    ;;
+    c) CLIPBOARD=1;;
+    q) QRCODE=1;;
+    l) 
+      [ -f $dir_home/uploads_log ] && less $dir_home/uploads_log || echo "There is no log file yet."
+      exit 0
+      ;;
+    v)
+      echo "Uploadgram terminal tool V0.1"
+      exit 0
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+[ "${1:-}" = "--" ] && shift
+
 file=$1
 
-[ -z "$file" ] &&  exit 1
+[ ! -e $file ] && echo "Invalid input argument" && exit 1
+
+file_name=$(echo $file | awk -F '/' '{print $NF}' )
 
 notify-send -u low "Uploadgram" "\nUploading file..."
 case "$(basename "$wc")" in
@@ -44,16 +80,25 @@ if [ "$?" != "0" ]; then
     notify-send -u critical "Uploadgram" "\nFile upload failed."
 fi
 if [ "$(echo "$RESP" | jq -r ".ok")" = "true" ]; then
-    notify-send -u normal "Uploadgram" "\nThe file link has been copied to your clipboard!"
-    link="$(echo "$RESP" | ${jq} -r ".url")"; test "$RAWLINK" = "true" && echo -n "?raw"
+    link="$(echo "$RESP" | ${jq} -r ".url")" 
     del="$(echo "$RESP" | ${jq} -r ".delete")"
-    ( echo -n $link ) | "${xclip}" -sel clipboard
+    if [ $CLIPBOARD -eq 1 ];then
+      ( echo -n $link ) | "${xclip}" -sel clipboard 
+      notify-send -u normal "Uploadgram" "\nThe file link has been copied to your clipboard!"
+    fi
+    if [ $QRCODE -eq 1 ];then
+      echo "QR Code download link:"
+      echo $link | qrencode -t UTF8i
+      echo $link | qrencode -o "$dir_qr/$file_name $(date +"%Y-%m-%d").png"
+      notify-send -u critical "Uploadgram" "\nQr-code file copied in."
+    fi
+    echo "File: $file" >> $dir_home/uploads_log
     echo "Download link is: $link" | tee -a $dir_home/uploads_log
     echo "Delete token is: $del" | tee -a $dir_home/uploads_log
     echo "----------------------------------------------------" >> $dir_home/uploads_log
 else
     notify-send -u critical "Uploadgram" "\nUpload failed."
     echo "Upload failed."
-    echo "Failed to upload ${file}.\n More info:\n$RESP" | tee -a $dir_home/uploads_log
+    echo -e "Failed to upload [ $file ].\nMore info:\n$RESP" | tee -a $dir_home/uploads_log
     echo "----------------------------------------------------" >> $dir_home/uploads_log
 fi
